@@ -6,6 +6,14 @@ import createFeature from './feature.js';
 
 export default function convert(data, options) {
     const features = [];
+
+    if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+            convertLayerData(features, data[i].layer, data[i].data, options);
+        }
+        return features;
+    }
+
     if (data.type === 'FeatureCollection') {
         for (let i = 0; i < data.features.length; i++) {
             convertFeature(features, data.features[i], options, i);
@@ -20,6 +28,24 @@ export default function convert(data, options) {
     }
 
     return features;
+}
+
+function convertLayerData(features, layer, data, options) {
+    // FIXME: ugly to pass 'layer' to 'convertFeature' in this way
+    options.layer = layer;
+
+    if (data.type === 'FeatureCollection') {
+        for (let i = 0; i < data.features.length; i++) {
+            convertFeature(features, data.features[i], options, i);
+        }
+
+    } else if (data.type === 'Feature') {
+        convertFeature(features, data, options);
+
+    } else {
+        // single geometry or a geometry collection
+        convertFeature(features, {geometry: data}, options);
+    }
 }
 
 function convertFeature(features, geojson, options, index) {
@@ -52,7 +78,7 @@ function convertFeature(features, geojson, options, index) {
             for (const line of coords) {
                 geometry = [];
                 convertLine(line, geometry, tolerance, false);
-                features.push(createFeature(id, 'LineString', geometry, geojson.properties));
+                features.push(createFeature(id, 'LineString', geometry, geojson.properties, options.layer));
             }
             return;
         } else {
@@ -81,7 +107,7 @@ function convertFeature(features, geojson, options, index) {
         throw new Error('Input data is not a valid GeoJSON object.');
     }
 
-    features.push(createFeature(id, type, geometry, geojson.properties));
+    features.push(createFeature(id, type, geometry, geojson.properties, options.layer));
 }
 
 function convertPoint(coords, out) {

@@ -1,5 +1,5 @@
 
-export default function createFeature(id, type, geom, tags) {
+export default function createFeature(id, type, geom, tags, layer) {
     const feature = {
         id: id == null ? null : id,
         type,
@@ -10,6 +10,9 @@ export default function createFeature(id, type, geom, tags) {
         maxX: -Infinity,
         maxY: -Infinity
     };
+    if (layer) {
+        feature.layer = layer;
+    }
     calcBBox(feature);
     return feature;
 }
