@@ -79,6 +79,9 @@ function addFeature(tile, feature, tolerance, options) {
             type === 'LineString' || type === 'MultiLineString' ? 2 : 1,
             tags
         };
+        if (feature.layer) {
+            tileFeature.layer = feature.layer;
+        }
         if (feature.id !== null) {
             tileFeature.id = feature.id;
         }
