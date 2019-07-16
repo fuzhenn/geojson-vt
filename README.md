@@ -46,6 +46,25 @@ var features = tileIndex.getTile(z, x, y).features;
 console.log(tileIndex.tileCoords); // [{z: 0, x: 0, y: 0}, ...]
 ```
 
+Multi data source with layer name
+```js
+// build an initial index of tiles
+var tileIndex = geojsonvt([
+	{
+		layer: 'layer-1',
+		data: geoJSON
+	},
+	{
+		layer: 'layer-2',
+		data: geoJSON
+	}
+]);
+
+// request a particular tile
+var features = tileIndex.getTile(z, x, y).features;
+// each feature in features will have a extra property 'layer'
+```
+
 ### Options
 
 You can fine-tune the results with an options object,
