@@ -59,7 +59,8 @@ export default function clip(features, scale, k1, k2, axis, minAll, maxAll, opti
         if (newGeometry.length) {
             if (options.lineMetrics && type === 'LineString') {
                 for (const line of newGeometry) {
-                    clipped.push(createFeature(feature.id, type, line, feature.tags));
+                    console.log(feature.layer);
+                    clipped.push(createFeature(feature.id, type, line, feature.tags, feature.layer));
                 }
                 continue;
             }
@@ -76,7 +77,7 @@ export default function clip(features, scale, k1, k2, axis, minAll, maxAll, opti
                 type = newGeometry.length === 3 ? 'Point' : 'MultiPoint';
             }
 
-            clipped.push(createFeature(feature.id, type, newGeometry, feature.tags));
+            clipped.push(createFeature(feature.id, type, newGeometry, feature.tags, feature.layer));
         }
     }
 
