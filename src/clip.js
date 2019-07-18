@@ -61,7 +61,6 @@ export default function clip(features, scale, k1, k2, axis, minAll, maxAll, opti
         if (newGeometry.length) {
             if (options.lineMetrics && type === 'LineString') {
                 for (const line of newGeometry) {
-                    console.log(feature.layer);
                     clipped.push(createFeature(feature.id, type, line, feature.tags, feature.layer));
                 }
                 continue;
