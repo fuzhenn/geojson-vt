@@ -11,14 +11,14 @@ export default function wrap(features, options) {
     if (left || right) {
         merged = clip(features, 1, -buffer, 1 + buffer, 0, -1, 2, options) || []; // center world copy
 
-        if (left) merged = shiftFeatureCoords(left, 1).concat(merged); // merge left into center
-        if (right) merged = merged.concat(shiftFeatureCoords(right, -1)); // merge right into center
+        if (left) merged = shiftFeatureCoords(left, 1, options.hasAltitude).concat(merged); // merge left into center
+        if (right) merged = merged.concat(shiftFeatureCoords(right, -1, options.hasAltitude)); // merge right into center
     }
 
     return merged;
 }
 
-function shiftFeatureCoords(features, offset) {
+function shiftFeatureCoords(features, offset, hasAltitude) {
     const newFeatures = [];
 
     for (let i = 0; i < features.length; i++) {
@@ -28,19 +28,19 @@ function shiftFeatureCoords(features, offset) {
         let newGeometry;
 
         if (type === 'Point' || type === 'MultiPoint' || type === 'LineString') {
-            newGeometry = shiftCoords(feature.geometry, offset);
+            newGeometry = shiftCoords(feature.geometry, offset, hasAltitude);
 
         } else if (type === 'MultiLineString' || type === 'Polygon') {
             newGeometry = [];
             for (const line of feature.geometry) {
-                newGeometry.push(shiftCoords(line, offset));
+                newGeometry.push(shiftCoords(line, offset, hasAltitude));
             }
         } else if (type === 'MultiPolygon') {
             newGeometry = [];
             for (const polygon of feature.geometry) {
                 const newPolygon = [];
                 for (const line of polygon) {
-                    newPolygon.push(shiftCoords(line, offset));
+                    newPolygon.push(shiftCoords(line, offset, hasAltitude));
                 }
                 newGeometry.push(newPolygon);
             }
@@ -52,7 +52,7 @@ function shiftFeatureCoords(features, offset) {
     return newFeatures;
 }
 
-function shiftCoords(points, offset) {
+function shiftCoords(points, offset, hasAltitude) {
     const newPoints = [];
     newPoints.size = points.size;
 
@@ -61,8 +61,13 @@ function shiftCoords(points, offset) {
         newPoints.end = points.end;
     }
 
-    for (let i = 0; i < points.length; i += 3) {
+    const stride = hasAltitude ? 4 : 3;
+
+    for (let i = 0; i < points.length; i += stride) {
         newPoints.push(points[i] + offset, points[i + 1], points[i + 2]);
+        if (hasAltitude) {
+            newPoints.push(points[i + 3]);
+        }
     }
     return newPoints;
 }

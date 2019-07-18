@@ -110,11 +110,14 @@ function convertFeature(features, geojson, options, index) {
     features.push(createFeature(id, type, geometry, geojson.properties, options.layer));
 }
 
-function convertPoint(coords, out) {
+function convertPoint(coords, out, hasAltitude) {
     out.push(projectX(coords[0]), projectY(coords[1]), 0);
+    if (hasAltitude) {
+        out.push(coords[2]);
+    }
 }
 
-function convertLine(ring, out, tolerance, isPolygon) {
+function convertLine(ring, out, tolerance, isPolygon, hasAltitude) {
     let x0, y0;
     let size = 0;
 
@@ -123,6 +126,10 @@ function convertLine(ring, out, tolerance, isPolygon) {
         const y = projectY(ring[j][1]);
 
         out.push(x, y, 0);
+
+        if (hasAltitude) {
+            out.push(ring[j][2]);
+        }
 
         if (j > 0) {
             if (isPolygon) {
@@ -135,9 +142,10 @@ function convertLine(ring, out, tolerance, isPolygon) {
         y0 = y;
     }
 
-    const last = out.length - 3;
+    const stride = hasAltitude ? 4 : 3;
+    const last = out.length - stride;
     out[2] = 1;
-    simplify(out, 0, last, tolerance);
+    simplify(out, 0, last, tolerance, stride);
     out[last + 2] = 1;
 
     out.size = Math.abs(size);

@@ -37,21 +37,21 @@ export default function clip(features, scale, k1, k2, axis, minAll, maxAll, opti
         let newGeometry = [];
 
         if (type === 'Point' || type === 'MultiPoint') {
-            clipPoints(geometry, newGeometry, k1, k2, axis);
+            clipPoints(geometry, newGeometry, k1, k2, axis, options.hasAltitude);
 
         } else if (type === 'LineString') {
-            clipLine(geometry, newGeometry, k1, k2, axis, false, options.lineMetrics);
+            clipLine(geometry, newGeometry, k1, k2, axis, false, options.lineMetrics, options.hasAltitude);
 
         } else if (type === 'MultiLineString') {
-            clipLines(geometry, newGeometry, k1, k2, axis, false);
+            clipLines(geometry, newGeometry, k1, k2, axis, false, options.hasAltitude);
 
         } else if (type === 'Polygon') {
-            clipLines(geometry, newGeometry, k1, k2, axis, true);
+            clipLines(geometry, newGeometry, k1, k2, axis, true, options.hasAltitude);
 
         } else if (type === 'MultiPolygon') {
             for (const polygon of geometry) {
                 const newPolygon = [];
-                clipLines(polygon, newPolygon, k1, k2, axis, true);
+                clipLines(polygon, newPolygon, k1, k2, axis, true, options.hasAltitude);
                 if (newPolygon.length) {
                     newGeometry.push(newPolygon);
                 }
@@ -85,29 +85,40 @@ export default function clip(features, scale, k1, k2, axis, minAll, maxAll, opti
     return clipped.length ? clipped : null;
 }
 
-function clipPoints(geom, newGeom, k1, k2, axis) {
-    for (let i = 0; i < geom.length; i += 3) {
+function clipPoints(geom, newGeom, k1, k2, axis, hasAltitude) {
+    const stride = hasAltitude ? 4 : 3;
+    for (let i = 0; i < geom.length; i += stride) {
         const a = geom[i + axis];
 
         if (a >= k1 && a <= k2) {
             addPoint(newGeom, geom[i], geom[i + 1], geom[i + 2]);
+            if (hasAltitude) {
+                newGeom.push(geom[i + 3]);
+            }
         }
     }
 }
 
-function clipLine(geom, newGeom, k1, k2, axis, isPolygon, trackMetrics) {
+function clipLine(geom, newGeom, k1, k2, axis, isPolygon, trackMetrics, hasAltitude) {
 
     let slice = newSlice(geom);
     const intersect = axis === 0 ? intersectX : intersectY;
     let len = geom.start;
     let segLen, t;
 
-    for (let i = 0; i < geom.length - 3; i += 3) {
+    const stride = hasAltitude ? 4 : 3;
+
+    for (let i = 0; i < geom.length - stride; i += stride) {
         const ax = geom[i];
         const ay = geom[i + 1];
         const az = geom[i + 2];
-        const bx = geom[i + 3];
-        const by = geom[i + 4];
+        const bx = geom[i + stride];
+        const by = geom[i + stride + 1];
+        let ah, bh;
+        if (hasAltitude) {
+            ah = geom[i + 3];
+            bh = geom[i + stride + 3];
+        }
         const a = axis === 0 ? ax : ay;
         const b = axis === 0 ? bx : by;
         let exited = false;
@@ -118,25 +129,40 @@ function clipLine(geom, newGeom, k1, k2, axis, isPolygon, trackMetrics) {
             // ---|-->  | (line enters the clip region from the left)
             if (b > k1) {
                 t = intersect(slice, ax, ay, bx, by, k1);
+                if (hasAltitude) {
+                    slice.push(newHeight(ah, bh, t));
+                }
                 if (trackMetrics) slice.start = len + segLen * t;
             }
         } else if (a > k2) {
             // |  <--|--- (line enters the clip region from the right)
             if (b < k2) {
                 t = intersect(slice, ax, ay, bx, by, k2);
+                if (hasAltitude) {
+                    slice.push(newHeight(ah, bh, t));
+                }
                 if (trackMetrics) slice.start = len + segLen * t;
             }
         } else {
             addPoint(slice, ax, ay, az);
+            if (hasAltitude) {
+                slice.push(ah);
+            }
         }
         if (b < k1 && a >= k1) {
             // <--|---  | or <--|-----|--- (line exits the clip region on the left)
             t = intersect(slice, ax, ay, bx, by, k1);
+            if (hasAltitude) {
+                slice.push(newHeight(ah, bh, t));
+            }
             exited = true;
         }
         if (b > k2 && a <= k2) {
             // |  ---|--> or ---|-----|--> (line exits the clip region on the right)
             t = intersect(slice, ax, ay, bx, by, k2);
+            if (hasAltitude) {
+                slice.push(newHeight(ah, bh, t));
+            }
             exited = true;
         }
 
@@ -150,17 +176,26 @@ function clipLine(geom, newGeom, k1, k2, axis, isPolygon, trackMetrics) {
     }
 
     // add the last point
-    let last = geom.length - 3;
+    let last = geom.length - stride;
     const ax = geom[last];
     const ay = geom[last + 1];
     const az = geom[last + 2];
     const a = axis === 0 ? ax : ay;
     if (a >= k1 && a <= k2) addPoint(slice, ax, ay, az);
+    if (a >= k1 && a <= k2) {
+        if (hasAltitude) {
+            const ah = geom[last + 3];
+            slice.push(ah);
+        }
+    }
 
     // close the polygon if its endpoints are not the same after clipping
-    last = slice.length - 3;
-    if (isPolygon && last >= 3 && (slice[last] !== slice[0] || slice[last + 1] !== slice[1])) {
+    last = slice.length - stride;
+    if (isPolygon && last >= stride && (slice[last] !== slice[0] || slice[last + 1] !== slice[1])) {
         addPoint(slice, slice[0], slice[1], slice[2]);
+        if (hasAltitude) {
+            slice.push(slice[3]);
+        }
     }
 
     // add the final slice
@@ -177,9 +212,9 @@ function newSlice(line) {
     return slice;
 }
 
-function clipLines(geom, newGeom, k1, k2, axis, isPolygon) {
+function clipLines(geom, newGeom, k1, k2, axis, isPolygon, hasAltitude) {
     for (const line of geom) {
-        clipLine(line, newGeom, k1, k2, axis, isPolygon, false);
+        clipLine(line, newGeom, k1, k2, axis, isPolygon, false, hasAltitude);
     }
 }
 
@@ -197,4 +232,8 @@ function intersectY(out, ax, ay, bx, by, y) {
     const t = (y - ay) / (by - ay);
     addPoint(out, ax + (bx - ax) * t, y, 1);
     return t;
+}
+
+function newHeight(ah, bh, t) {
+    return ah + (bh - ah) * t;
 }
