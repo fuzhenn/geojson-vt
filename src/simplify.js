@@ -1,7 +1,7 @@
 
 // calculate simplification data using optimized Douglas-Peucker algorithm
 
-export default function simplify(coords, first, last, sqTolerance) {
+export default function simplify(coords, first, last, sqTolerance, stride = 3) {
     let maxSqDist = sqTolerance;
     const mid = (last - first) >> 1;
     let minPosToMid = last - first;
@@ -12,7 +12,7 @@ export default function simplify(coords, first, last, sqTolerance) {
     const bx = coords[last];
     const by = coords[last + 1];
 
-    for (let i = first + 3; i < last; i += 3) {
+    for (let i = first + stride; i < last; i += stride) {
         const d = getSqSegDist(coords[i], coords[i + 1], ax, ay, bx, by);
 
         if (d > maxSqDist) {
@@ -32,9 +32,9 @@ export default function simplify(coords, first, last, sqTolerance) {
     }
 
     if (maxSqDist > sqTolerance) {
-        if (index - first > 3) simplify(coords, first, index, sqTolerance);
+        if (index - first > stride) simplify(coords, first, index, sqTolerance);
         coords[index + 2] = maxSqDist;
-        if (last - index > 3) simplify(coords, index, last, sqTolerance);
+        if (last - index > stride) simplify(coords, index, last, sqTolerance);
     }
 }
 

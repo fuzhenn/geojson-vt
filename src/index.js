@@ -54,6 +54,7 @@ GeoJSONVT.prototype.options = {
     lineMetrics: false,     // whether to calculate line metrics
     promoteId: null,        // name of a feature property to be promoted to feature.id
     generateId: false,      // whether to generate feature ids. Cannot be used with promoteId
+    hasAltitude: false,     // whether input data has altitude
     debug: 0                // logging level (0, 1 or 2)
 };
 
@@ -156,6 +157,7 @@ GeoJSONVT.prototype.splitTile = function (features, z, x, y, cz, cx, cy) {
 GeoJSONVT.prototype.getTile = function (z, x, y) {
     const options = this.options;
     const {extent, debug} = options;
+    const {hasAltitude} = options;
 
     if (z < 0 || z > 24) return null;
 
@@ -163,7 +165,7 @@ GeoJSONVT.prototype.getTile = function (z, x, y) {
     x = ((x % z2) + z2) % z2; // wrap tile x coordinate
 
     const id = toID(z, x, y);
-    if (this.tiles[id]) return transform(this.tiles[id], extent);
+    if (this.tiles[id]) return transform(this.tiles[id], extent, hasAltitude);
 
     if (debug > 1) console.log('drilling down to z%d-%d-%d', z, x, y);
 
@@ -188,7 +190,7 @@ GeoJSONVT.prototype.getTile = function (z, x, y) {
     this.splitTile(parent.source, z0, x0, y0, z, x, y);
     if (debug > 1) console.timeEnd('drilling down');
 
-    return this.tiles[id] ? transform(this.tiles[id], extent) : null;
+    return this.tiles[id] ? transform(this.tiles[id], extent, hasAltitude) : null;
 };
 
 function toID(z, x, y) {
