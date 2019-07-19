@@ -46,7 +46,7 @@ function shiftFeatureCoords(features, offset, hasAltitude) {
             }
         }
 
-        newFeatures.push(createFeature(feature.id, type, newGeometry, feature.tags, feature.layer));
+        newFeatures.push(createFeature(feature.id, type, newGeometry, feature.tags, feature.layer, hasAltitude));
     }
 
     return newFeatures;

@@ -32,9 +32,9 @@ export default function simplify(coords, first, last, sqTolerance, stride = 3) {
     }
 
     if (maxSqDist > sqTolerance) {
-        if (index - first > stride) simplify(coords, first, index, sqTolerance);
+        if (index - first > stride) simplify(coords, first, index, sqTolerance, stride);
         coords[index + 2] = maxSqDist;
-        if (last - index > stride) simplify(coords, index, last, sqTolerance);
+        if (last - index > stride) simplify(coords, index, last, sqTolerance, stride);
     }
 }
 
