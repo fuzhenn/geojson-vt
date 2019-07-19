@@ -1,5 +1,5 @@
 
-export default function createFeature(id, type, geom, tags, layer) {
+export default function createFeature(id, type, geom, tags, layer, hasAltitude) {
     const feature = {
         id: id == null ? null : id,
         type,
@@ -13,16 +13,17 @@ export default function createFeature(id, type, geom, tags, layer) {
     if (layer) {
         feature.layer = layer;
     }
-    calcBBox(feature);
+    const stride = hasAltitude ? 4 : 3;
+    calcBBox(feature, stride);
     return feature;
 }
 
-function calcBBox(feature) {
+function calcBBox(feature, stride) {
     const geom = feature.geometry;
     const type = feature.type;
 
     if (type === 'Point' || type === 'MultiPoint' || type === 'LineString') {
-        calcLineBBox(feature, geom);
+        calcLineBBox(feature, geom, stride);
 
     } else if (type === 'Polygon') {
         // the outer ring (ie [0]) contains all inner rings
@@ -30,19 +31,19 @@ function calcBBox(feature) {
 
     } else if (type === 'MultiLineString') {
         for (const line of geom) {
-            calcLineBBox(feature, line);
+            calcLineBBox(feature, line, stride);
         }
 
     } else if (type === 'MultiPolygon') {
         for (const polygon of geom) {
             // the outer ring (ie [0]) contains all inner rings
-            calcLineBBox(feature, polygon[0]);
+            calcLineBBox(feature, polygon[0], stride);
         }
     }
 }
 
-function calcLineBBox(feature, geom) {
-    for (let i = 0; i < geom.length; i += 3) {
+function calcLineBBox(feature, geom, stride) {
+    for (let i = 0; i < geom.length; i += stride) {
         feature.minX = Math.min(feature.minX, geom[i]);
         feature.minY = Math.min(feature.minY, geom[i + 1]);
         feature.maxX = Math.max(feature.maxX, geom[i]);

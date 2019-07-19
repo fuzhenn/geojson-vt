@@ -62,36 +62,36 @@ function convertFeature(features, geojson, options, index) {
         id = index || 0;
     }
     if (type === 'Point') {
-        convertPoint(coords, geometry);
+        convertPoint(coords, geometry, options.hasAltitude);
 
     } else if (type === 'MultiPoint') {
         for (const p of coords) {
-            convertPoint(p, geometry);
+            convertPoint(p, geometry, options.hasAltitude);
         }
 
     } else if (type === 'LineString') {
-        convertLine(coords, geometry, tolerance, false);
+        convertLine(coords, geometry, tolerance, false, options.hasAltitude);
 
     } else if (type === 'MultiLineString') {
         if (options.lineMetrics) {
             // explode into linestrings to be able to track metrics
             for (const line of coords) {
                 geometry = [];
-                convertLine(line, geometry, tolerance, false);
-                features.push(createFeature(id, 'LineString', geometry, geojson.properties, options.layer));
+                convertLine(line, geometry, tolerance, false, options.hasAltitude);
+                features.push(createFeature(id, 'LineString', geometry, geojson.properties, options.layer, options.hasAltitude));
             }
             return;
         } else {
-            convertLines(coords, geometry, tolerance, false);
+            convertLines(coords, geometry, tolerance, false, options.hasAltitude);
         }
 
     } else if (type === 'Polygon') {
-        convertLines(coords, geometry, tolerance, true);
+        convertLines(coords, geometry, tolerance, true, options.hasAltitude);
 
     } else if (type === 'MultiPolygon') {
         for (const polygon of coords) {
             const newPolygon = [];
-            convertLines(polygon, newPolygon, tolerance, true);
+            convertLines(polygon, newPolygon, tolerance, true, options.hasAltitude);
             geometry.push(newPolygon);
         }
     } else if (type === 'GeometryCollection') {
@@ -107,7 +107,7 @@ function convertFeature(features, geojson, options, index) {
         throw new Error('Input data is not a valid GeoJSON object.');
     }
 
-    features.push(createFeature(id, type, geometry, geojson.properties, options.layer));
+    features.push(createFeature(id, type, geometry, geojson.properties, options.layer, options.hasAltitude));
 }
 
 function convertPoint(coords, out, hasAltitude) {
@@ -153,10 +153,10 @@ function convertLine(ring, out, tolerance, isPolygon, hasAltitude) {
     out.end = out.size;
 }
 
-function convertLines(rings, out, tolerance, isPolygon) {
+function convertLines(rings, out, tolerance, isPolygon, hasAltitude) {
     for (let i = 0; i < rings.length; i++) {
         const geom = [];
-        convertLine(rings[i], geom, tolerance, isPolygon);
+        convertLine(rings[i], geom, tolerance, isPolygon, hasAltitude);
         out.push(geom);
     }
 }
