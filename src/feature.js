@@ -27,7 +27,7 @@ function calcBBox(feature, stride) {
 
     } else if (type === 'Polygon') {
         // the outer ring (ie [0]) contains all inner rings
-        calcLineBBox(feature, geom[0]);
+        calcLineBBox(feature, geom[0], stride);
 
     } else if (type === 'MultiLineString') {
         for (const line of geom) {
